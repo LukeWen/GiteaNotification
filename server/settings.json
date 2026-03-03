@@ -251,9 +251,5 @@
       "name": "Boxing Day"
     }
   ],
-  "sentReminders": {
-    "264": [
-      "reminder_1"
-    ]
-  }
+  "sentReminders": {}
 }

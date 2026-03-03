@@ -182,14 +182,43 @@ function renderSentReminders() {
     return;
   }
 
-  container.innerHTML = entries.map(([issueId, reminders]) => `
-    <div style="padding: 4px 0; border-bottom: 1px solid #f5f5f5; display: flex; justify-content: space-between;">
-      <span>Issue #${issueId}</span>
-      <span style="color: #059669;">${reminders.join(', ')}</span>
-    </div>
-  `).join('');
+  container.innerHTML = entries.map(([issueId, reminders]) => {
+    return reminders.map(r => {
+      const key = typeof r === 'string' ? r : r.key;
+      const days = key.replace('reminder_', '');
+      const hasCommentId = typeof r === 'object' && r.commentId;
+
+      return `
+        <div style="padding: 4px 0; border-bottom: 1px solid #f5f5f5; display: flex; justify-content: space-between; align-items: center;">
+          <span>Issue #${issueId} (${days}d)</span>
+          <button class="btn btn-secondary btn-small" onclick="deleteReminder('${issueId}', '${key}')" 
+                  style="padding: 1px 6px; font-size: 10px; border-color: #ffcfcf; color: ${hasCommentId ? '#dc2626' : '#999'};"
+                  title="${hasCommentId ? 'Delete record and Gitea comment' : 'Delete local record only'}">
+            Delete ${hasCommentId ? 'Comment' : 'Record'}
+          </button>
+        </div>
+      `;
+    }).join('');
+  }).join('');
 }
 
+async function deleteReminder(issueId, key) {
+  if (!confirm(`Are you sure you want to delete this reminder record?`)) return;
+
+  toggleLoading(true, 'Deleting reminder...');
+  try {
+    const res = await fetch(`/api/settings/reminders/${issueId}/${key}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Failed to delete reminder');
+
+    // Refresh local state and UI
+    await loadSettings();
+    alert('Reminder deleted successfuly!');
+  } catch (e) {
+    alert('Delete failed: ' + e.message);
+  } finally {
+    toggleLoading(false);
+  }
+}
 async function resetSentReminders() {
   if (!confirm('Are you sure you want to clear all sent reminder records? This will allow reminders to be re-sent if you trigger them again today.')) return;
 

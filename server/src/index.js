@@ -674,6 +674,35 @@ app.post('/api/settings/reset-reminders', async (_req, res) => {
   res.json({ ok: true });
 });
 
+app.delete('/api/settings/reminders/:issueId/:reminderKey', async (req, res) => {
+  const { issueId, reminderKey } = req.params;
+  const settings = await getSettings();
+  const sentList = settings.sentReminders[issueId] || [];
+
+  const recordIndex = sentList.findIndex(r => (typeof r === 'string' ? r === reminderKey : r.key === reminderKey));
+  if (recordIndex === -1) return res.status(404).json({ error: 'Reminder not found' });
+
+  const record = sentList[recordIndex];
+
+  // If we have commentId and repo, try to delete from Gitea
+  if (typeof record === 'object' && record.commentId && record.repo) {
+    try {
+      const { defaultOwner } = settings.notifications;
+      await api.delete(`/repos/${defaultOwner}/${record.repo}/issues/comments/${record.commentId}`);
+    } catch (err) {
+      console.warn(`[API] Failed to delete Gitea comment ${record.commentId}:`, err.message);
+      // We continue to remove the local record even if Gitea deletion fails (e.g. comment already deleted)
+    }
+  }
+
+  // Remove local record
+  sentList.splice(recordIndex, 1);
+  if (sentList.length === 0) delete settings.sentReminders[issueId];
+  await saveSettings(settings);
+
+  res.json({ ok: true });
+});
+
 // Notification Job
 async function runNotificationCheck() {
   const settings = await getSettings();
@@ -713,19 +742,28 @@ async function runNotificationCheck() {
         if (reminderDays.includes(diff)) {
           const reminderKey = `reminder_${diff}`;
           const sentList = settings.sentReminders[issue.id] || [];
+          const isSent = sentList.some(r => (typeof r === 'string' ? r === reminderKey : r.key === reminderKey));
 
-          if (!sentList.includes(reminderKey)) {
+          if (!isSent) {
             console.log(`[Cron] Triggering reminder for ${repo.name}#${issue.number} (due in ${diff} days)`);
             try {
               const dueDateString = issue.due_date.split('T')[0];
-              await api.post(`/repos/${defaultOwner}/${repo.name}/issues/${issue.number}/comments`, {
+              const commentRes = await api.post(`/repos/${defaultOwner}/${repo.name}/issues/${issue.number}/comments`, {
                 body: `⏰ **Reminder**: This issue is due in **${diff}** ${diff === 1 ? 'day' : 'days'} (Due: ${dueDateString}).`
               });
 
               // Refresh settings to avoid race conditions
               const latestSettings = await getSettings();
               if (!latestSettings.sentReminders[issue.id]) latestSettings.sentReminders[issue.id] = [];
-              latestSettings.sentReminders[issue.id].push(reminderKey);
+
+              // Store richer record
+              latestSettings.sentReminders[issue.id].push({
+                key: reminderKey,
+                commentId: commentRes.data.id,
+                repo: repo.name,
+                sentAt: new Date().toISOString()
+              });
+
               await saveSettings(latestSettings);
             } catch (err) {
               console.error(`[Cron] Failed to post comment to ${repo.name}#${issue.number}:`, err.message);
