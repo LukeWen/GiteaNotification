@@ -123,21 +123,35 @@ app.get('/api/repos/:owner/:repo/issues/:index', async (req, res) => {
     const { owner, repo, index } = req.params;
     const { page = 1, limit = 20 } = req.query;
 
-    const [issue, timelineRes] = await Promise.all([
+    const [issue, timelineRes, commentsRes] = await Promise.all([
       api.get(`/repos/${owner}/${repo}/issues/${index}`).then(r => r.data),
       api.get(`/repos/${owner}/${repo}/issues/${index}/timeline`, {
         params: { page, limit }
       }).catch(() => ({ data: [], headers: {} })),
+      api.get(`/repos/${owner}/${repo}/issues/${index}/comments`).catch(() => ({ data: [] })),
     ]);
 
     const timeline = Array.isArray(timelineRes.data) ? timelineRes.data : [];
-    const totalCount = Number(timelineRes.headers?.['x-total-count']) || timeline.length;
+    const rawComments = Array.isArray(commentsRes.data) ? commentsRes.data : [];
+
+    // Normalize comments to have type: 'comment' if not present
+    const normalizedComments = rawComments.map(c => ({
+      ...c,
+      type: c.type || 'comment'
+    }));
+
+    // Merge and sort by created_at
+    const combined = [...timeline, ...normalizedComments].sort((a, b) => {
+      return new Date(a.created_at) - new Date(b.created_at);
+    });
+
+    const totalCount = (Number(timelineRes.headers?.['x-total-count']) || timeline.length) + normalizedComments.length;
 
     const siteBase = GITEA_BASE_URL.replace(/\/?api\/v1$/, '');
     const webUrl = `${siteBase}/${owner}/${repo}/issues/${index}`;
     res.json({
       ...issue,
-      comments: timeline, // Keep the key as 'comments' for backward compatibility or rename if preferred
+      comments: combined,
       totalComments: totalCount,
       page: Number(page),
       limit: Number(limit),
