@@ -667,6 +667,13 @@ app.post('/api/settings', async (req, res) => {
   res.json({ ok: true });
 });
 
+app.post('/api/settings/reset-reminders', async (_req, res) => {
+  const settings = await getSettings();
+  settings.sentReminders = {};
+  await saveSettings(settings);
+  res.json({ ok: true });
+});
+
 // Notification Job
 async function runNotificationCheck() {
   const settings = await getSettings();
@@ -692,23 +699,30 @@ async function runNotificationCheck() {
       for (const issue of issues) {
         if (!issue.due_date) continue;
 
+        // Robust date calculation
         const dueDate = new Date(issue.due_date);
         const now = new Date();
-        const d1 = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
-        const d2 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const diff = Math.round((d1 - d2) / (1000 * 60 * 60 * 24));
+
+        // Normalize to UTC midnight for comparison
+        const dDue = Date.UTC(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+        const dNow = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+        const diff = Math.round((dDue - dNow) / (1000 * 60 * 60 * 24));
+
+        console.log(`[Cron] Checking ${repo.name}#${issue.number}: Due ${issue.due_date.split('T')[0]}, diff=${diff}`);
+
         if (reminderDays.includes(diff)) {
           const reminderKey = `reminder_${diff}`;
           const sentList = settings.sentReminders[issue.id] || [];
 
           if (!sentList.includes(reminderKey)) {
-            console.log(`[Cron] Adding reminder for ${repo.name}#${issue.number} (due in ${diff} days)`);
+            console.log(`[Cron] Triggering reminder for ${repo.name}#${issue.number} (due in ${diff} days)`);
             try {
+              const dueDateString = issue.due_date.split('T')[0];
               await api.post(`/repos/${defaultOwner}/${repo.name}/issues/${issue.number}/comments`, {
-                body: `⏰ **Reminder**: This issue is due in **${diff}** ${diff === 1 ? 'day' : 'days'}.`
+                body: `⏰ **Reminder**: This issue is due in **${diff}** ${diff === 1 ? 'day' : 'days'} (Due: ${dueDateString}).`
               });
 
-              // Refresh settings to avoid race conditions with multiple updates
+              // Refresh settings to avoid race conditions
               const latestSettings = await getSettings();
               if (!latestSettings.sentReminders[issue.id]) latestSettings.sentReminders[issue.id] = [];
               latestSettings.sentReminders[issue.id].push(reminderKey);
@@ -716,6 +730,8 @@ async function runNotificationCheck() {
             } catch (err) {
               console.error(`[Cron] Failed to post comment to ${repo.name}#${issue.number}:`, err.message);
             }
+          } else {
+            console.log(`[Cron] Skipping: ${reminderKey} already sent for ${issue.id}`);
           }
         }
       }

@@ -259,11 +259,25 @@
                       }
                     })();
                   </script>
-                  <div class="form-row">
+                  <div class="form-row" style="margin-bottom: 12px;">
                     <label for="notif-intervals">Reminder Days Before Due:</label>
                     <input type="text" id="notif-intervals" class="settings-input" placeholder="e.g. 5, 3, 1">
                     <small style="display: block; color: #666; margin-top: 4px;">Comma-separated list of days remaining
                       to trigger a reminder comment.</small>
+                  </div>
+
+                  <div class="sent-reminders-section"
+                    style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed #eee;">
+                    <div
+                      style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                      <h5 style="margin: 0; font-size: 13px; color: #444;">Sent Reminders Records</h5>
+                      <button type="button" class="btn btn-secondary btn-small" id="btn-reset-reminders"
+                        style="padding: 2px 8px; font-size: 11px;">Reset Records</button>
+                    </div>
+                    <div id="sent-reminders-list" class="reminders-list"
+                      style="font-size: 12px; color: #666; max-height: 150px; overflow-y: auto;">
+                      <!-- Sent reminders will be listed here -->
+                    </div>
                   </div>
                 </div>
               </div>

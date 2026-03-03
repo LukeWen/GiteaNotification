@@ -79,6 +79,7 @@ async function loadSettings() {
       if ($('#notif-intervals')) $('#notif-intervals').value = (settings.notifications.reminderDays || [5, 3, 1]).join(', ');
     }
     window.__sentReminders = settings.sentReminders || {};
+    renderSentReminders();
   } catch (e) {
     console.error('Failed to load settings:', e);
   } finally {
@@ -164,6 +165,44 @@ async function resetSettings() {
     await loadSettings();
   } catch (e) {
     alert('Reset failed: ' + e.message);
+  } finally {
+    toggleLoading(false);
+  }
+}
+
+function renderSentReminders() {
+  const container = document.getElementById('sent-reminders-list');
+  if (!container) return;
+
+  const records = window.__sentReminders || {};
+  const entries = Object.entries(records);
+
+  if (entries.length === 0) {
+    container.innerHTML = '<div style="font-style: italic; color: #999;">No reminders sent yet today.</div>';
+    return;
+  }
+
+  container.innerHTML = entries.map(([issueId, reminders]) => `
+    <div style="padding: 4px 0; border-bottom: 1px solid #f5f5f5; display: flex; justify-content: space-between;">
+      <span>Issue #${issueId}</span>
+      <span style="color: #059669;">${reminders.join(', ')}</span>
+    </div>
+  `).join('');
+}
+
+async function resetSentReminders() {
+  if (!confirm('Are you sure you want to clear all sent reminder records? This will allow reminders to be re-sent if you trigger them again today.')) return;
+
+  toggleLoading(true, 'Resetting records...');
+  try {
+    const res = await fetch('/api/settings/reset-reminders', { method: 'POST' });
+    if (!res.ok) throw new Error('Failed to reset records');
+
+    window.__sentReminders = {};
+    renderSentReminders();
+    alert('Sent reminder records cleared successfully!');
+  } catch (e) {
+    alert('Clear failed: ' + e.message);
   } finally {
     toggleLoading(false);
   }
@@ -346,6 +385,11 @@ async function initializeMainApp() {
 
     if (settingsAddHoliday) {
       settingsAddHoliday.addEventListener('click', addSettingsHoliday);
+    }
+
+    const resetRemindersBtn = document.getElementById('btn-reset-reminders');
+    if (resetRemindersBtn) {
+      resetRemindersBtn.addEventListener('click', resetSentReminders);
     }
 
     switchTab('issues');
