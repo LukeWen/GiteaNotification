@@ -235,10 +235,30 @@
                     </label>
                   </div>
                   <div class="form-row" style="margin-bottom: 12px;">
-                    <label for="notif-time">Check Time:</label>
-                    <input type="text" id="notif-time" class="settings-input" style="width: 120px;" placeholder="HH:mm">
-                    <small style="color: #666; margin-left: 8px;">(24-hour format, Server time)</small>
+                    <label for="notif-hour">Check Time:</label>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                      <select id="notif-hour" class="settings-input" style="width: 70px;"></select>
+                      <span>:</span>
+                      <select id="notif-min" class="settings-input" style="width: 70px;"></select>
+                      <small style="color: #666; margin-left: 8px;">(24-hour format, Server time)</small>
+                    </div>
                   </div>
+                  <script>
+                    (function () {
+                      const h = document.getElementById('notif-hour');
+                      const m = document.getElementById('notif-min');
+                      if (h && m) {
+                        for (let i = 0; i < 24; i++) {
+                          const val = String(i).padStart(2, '0');
+                          h.add(new Option(val, val));
+                        }
+                        for (let i = 0; i < 60; i++) {
+                          const val = String(i).padStart(2, '0');
+                          m.add(new Option(val, val));
+                        }
+                      }
+                    })();
+                  </script>
                   <div class="form-row">
                     <label for="notif-intervals">Reminder Days Before Due:</label>
                     <input type="text" id="notif-intervals" class="settings-input" placeholder="e.g. 5, 3, 1">

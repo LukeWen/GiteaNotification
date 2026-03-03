@@ -71,7 +71,11 @@ async function loadSettings() {
     // Set notification values
     if (settings.notifications) {
       if ($('#notif-enabled')) $('#notif-enabled').checked = settings.notifications.enabled;
-      if ($('#notif-time')) $('#notif-time').value = settings.notifications.checkTime || '09:00';
+
+      const [h, m] = (settings.notifications.checkTime || '09:00').split(':');
+      if ($('#notif-hour')) $('#notif-hour').value = h || '09';
+      if ($('#notif-min')) $('#notif-min').value = m || '00';
+
       if ($('#notif-intervals')) $('#notif-intervals').value = (settings.notifications.reminderDays || [5, 3, 1]).join(', ');
     }
     window.__sentReminders = settings.sentReminders || {};
@@ -85,14 +89,10 @@ async function loadSettings() {
 async function saveSettings() {
   const owner = document.getElementById('default-owner').value.trim();
   const notifEnabled = $('#notif-enabled').checked;
-  const notifTime = $('#notif-time').value.trim();
+  const notifHour = $('#notif-hour').value;
+  const notifMin = $('#notif-min').value;
+  const notifTime = `${notifHour}:${notifMin}`;
   const notifIntervals = $('#notif-intervals').value.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
-
-  // Validate time format (HH:mm, 24-hour)
-  if (notifEnabled && !/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(notifTime)) {
-    alert('Please enter a valid 24-hour time (HH:mm), e.g., 09:00 or 23:30');
-    return;
-  }
 
   const settings = {
     notifications: {
