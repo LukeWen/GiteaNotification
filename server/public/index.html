@@ -1,0 +1,276 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Gitea Dashboard</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <script src="config.js"></script>
+  <script src="utils.js"></script>
+  <script src="filters.js"></script>
+  <script src="tabs.js"></script>
+
+
+  <script src="main.js"></script>
+</head>
+
+<body>
+  <!-- Login Page -->
+  <div id="login-page" class="login-container" style="display: none;">
+    <div class="login-card">
+      <div class="login-header">
+        <i data-lucide="shield" class="login-icon"></i>
+        <h2 class="login-title">Gitea Dashboard</h2>
+        <p class="login-subtitle">Please sign in to continue</p>
+      </div>
+
+      <form id="login-form" class="login-form">
+        <div class="form-group">
+          <label for="username" class="form-label">
+            <i data-lucide="user" class="form-icon"></i>
+            Username
+          </label>
+          <input type="text" id="username" class="form-input" placeholder="Enter username" required>
+        </div>
+
+        <div class="form-group">
+          <label for="password" class="form-label">
+            <i data-lucide="lock" class="form-icon"></i>
+            Password
+          </label>
+          <input type="password" id="password" class="form-input" placeholder="Enter password" required>
+        </div>
+
+        <button type="submit" class="login-btn">
+          <i data-lucide="log-in" class="btn-icon"></i>
+          Sign In
+        </button>
+      </form>
+
+      <div id="login-error" class="login-error" style="display: none;">
+        <i data-lucide="alert-circle" class="error-icon"></i>
+        <span class="error-text">Invalid username or password</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Application -->
+  <div id="main-app" class="dashboard-container" style="display: none;">
+    <!-- Sidebar Navigation -->
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <button class="sidebar-toggle" id="sidebar-toggle">
+          <i data-lucide="menu" class="toggle-icon"></i>
+        </button>
+        <h2 class="sidebar-title">Gitea Dashboard</h2>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="#" class="nav-item" data-tab="issues">
+          <span class="nav-icon"><i data-lucide="file-text"></i></span>
+          <span class="nav-text">Issues</span>
+        </a>
+
+
+        <a href="#" class="nav-item" data-tab="settings">
+          <span class="nav-icon"><i data-lucide="settings"></i></span>
+          <span class="nav-text">Settings</span>
+        </a>
+      </nav>
+
+      <!-- Sidebar Collapse Toggle Button -->
+      <button class="sidebar-collapse-btn" id="sidebar-collapse-btn">
+        <i data-lucide="chevron-left" class="collapse-icon"></i>
+      </button>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="main-area">
+      <div class="header">
+        <div class="header-left">
+
+          <div class="header-controls">
+            <b>Owner</b>
+            <input id="owner" placeholder="Owner/Organization" value="IDITech" />
+            <button id="load" class="btn btn-primary">Load</button>
+          </div>
+        </div>
+        <div class="header-right">
+          <div class="user-info">
+            <i data-lucide="user" class="user-icon-small"></i>
+            <span class="username">admin</span>
+            <button id="logout-btn" class="logout-btn-header">
+              <i data-lucide="log-out" class="logout-icon-small"></i>
+              Logout
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats Cards -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon"><i data-lucide="bar-chart-3"></i></div>
+          <div class="stat-content">
+            <div class="stat-value" id="total-issues">0</div>
+            <div class="stat-label">Total Issues</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon"><i data-lucide="clock" class="text-green"></i></div>
+          <div class="stat-content">
+            <div class="stat-value" id="open-issues">0</div>
+            <div class="stat-label">Open Issues</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon"><i data-lucide="archive"></i></div>
+          <div class="stat-content">
+            <div class="stat-value" id="closed-issues">0</div>
+            <div class="stat-label">Closed Issues</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon"><i data-lucide="timer"></i></div>
+          <div class="stat-content">
+            <div class="stat-value" id="assigned-issues">0</div>
+            <div class="stat-label">Total Hours</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="content-area">
+        <!-- Issues Tab Content -->
+        <div class="tab-content active" id="issues-tab">
+          <div class="content-section">
+            <div class="section-header">
+              <h3 class="section-title">Issue Details</h3>
+
+              <div class="section-stats">
+                <span class="issues-count" id="selected-count">Selected: 0</span>
+              </div>
+            </div>
+
+            <div class="filters-section">
+              <div class="filters-grid">
+                <div class="filter-group-container">
+                  <div class="filter-group" id="fg-repo">
+                    <div class="filter-title">Repos</div>
+                    <div class="filter-options" id="repo-group"></div>
+                  </div>
+                  <div class="filter-group" id="fg-state">
+                    <div class="filter-title">State</div>
+                    <div class="filter-options" id="state-group"></div>
+                  </div>
+                  <div class="filter-group" id="fg-assignee">
+                    <div class="filter-title">Assignee</div>
+                    <div class="filter-options" id="assignee-group"></div>
+                  </div>
+                  <div class="filter-group" id="fg-milestones">
+                    <div class="filter-title">Milestones</div>
+                    <div class="filter-options" id="milestone-group"></div>
+                  </div>
+                  <div class="filter-group" id="fg-projects">
+                    <div class="filter-title">Projects</div>
+                    <div class="filter-options" id="project-group"></div>
+                  </div>
+                  <div class="filter-group" id="fg-labels" style="grid-column: span 2;">
+                    <div class="filter-title">Labels</div>
+                    <div class="filter-options labels-grid" id="labels-group"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="issues-list" id="issues"></div>
+            <div id="main-pagination" class="pagination-container"></div>
+          </div>
+        </div>
+
+
+
+
+
+
+
+
+
+        <!-- Settings Tab Content -->
+        <div class="tab-content" id="settings-tab">
+          <div class="content-section">
+            <div class="section-header">
+              <h3 class="section-title">Settings</h3>
+            </div>
+
+            <div class="settings-content">
+              <div class="settings-group">
+                <h4>Default Owner</h4>
+                <div class="form-row">
+                  <label for="default-owner">Owner/Organization:</label>
+                  <input type="text" id="default-owner" class="settings-input" placeholder="Enter owner name">
+                </div>
+              </div>
+
+              <div class="settings-group">
+                <h4>Holidays</h4>
+                <div class="holiday-list" id="settings-holiday-list">
+                  <!-- Holiday items will be added here -->
+                </div>
+                <div class="holiday-add">
+                  <input type="date" id="settings-holiday-date" class="settings-input" />
+                  <input type="text" id="settings-holiday-name" class="settings-input" placeholder="Holiday name" />
+                  <button type="button" class="btn" id="settings-add-holiday">Add Holiday</button>
+                </div>
+              </div>
+
+              <div class="settings-group">
+                <h4>Scheduled Notifications</h4>
+                <div class="notification-settings">
+                  <div class="form-row" style="margin-bottom: 12px;">
+                    <label class="checkbox-label"
+                      style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                      <input type="checkbox" id="notif-enabled" style="width: 18px; height: 18px;">
+                      <span>Enable Daily Reminder Comments</span>
+                    </label>
+                  </div>
+                  <div class="form-row" style="margin-bottom: 12px;">
+                    <label for="notif-time">Check Time:</label>
+                    <input type="time" id="notif-time" class="settings-input" style="width: 120px;">
+                    <small style="color: #666; margin-left: 8px;">(Server time)</small>
+                  </div>
+                  <div class="form-row">
+                    <label for="notif-intervals">Reminder Days Before Due:</label>
+                    <input type="text" id="notif-intervals" class="settings-input" placeholder="e.g. 5, 3, 1">
+                    <small style="display: block; color: #666; margin-top: 4px;">Comma-separated list of days remaining
+                      to trigger a reminder comment.</small>
+                  </div>
+                </div>
+              </div>
+
+
+            </div>
+
+            <div class="settings-actions">
+              <button type="button" class="btn btn-secondary" id="settings-reset">Reset to Default</button>
+              <button type="button" class="btn" id="settings-save">Save Settings</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+
+  <div id="loading-overlay">
+    <div class="spinner"></div>
+    <div id="loading-message">Loading...</div>
+  </div>
+
+
+
+
+</body>
+
+</html>
