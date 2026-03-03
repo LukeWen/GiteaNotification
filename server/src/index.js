@@ -29,12 +29,7 @@ const api = axios.create({
 
 app.get('/api/ping', (_req, res) => res.json({ ok: true }));
 
-app.get('/api/config', (_req, res) => {
-  res.json({
-    giteaBaseUrl: process.env.GITEA_BASE_URL || '',
-    giteaToken: process.env.GITEA_TOKEN || '',
-  });
-});
+
 
 
 app.get('/api/user', async (_req, res) => {
@@ -782,12 +777,15 @@ async function runNotificationCheck() {
 // Schedule check every minute
 cron.schedule('* * * * *', async () => {
   const settings = await getSettings();
-  if (!settings.notifications?.enabled) return;
-
   const now = new Date();
   const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
-  if (currentTime === settings.notifications.checkTime) {
+  const enabled = settings.notifications?.enabled;
+  const targetTime = settings.notifications?.checkTime || 'N/A';
+
+  console.log(`[Cron Pulse] Current: ${currentTime} | Target: ${targetTime} | Enabled: ${enabled}`);
+
+  if (enabled && currentTime === targetTime) {
     await runNotificationCheck();
   }
 });
