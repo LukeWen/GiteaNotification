@@ -34,7 +34,8 @@ app.get('/api/config', (_req, res) => {
     giteaBaseUrl: process.env.GITEA_BASE_URL || '',
     giteaToken: process.env.GITEA_TOKEN || '',
   });
-}); 0.
+});
+
 
 app.get('/api/user', async (_req, res) => {
   try {
