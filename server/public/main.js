@@ -85,8 +85,14 @@ async function loadSettings() {
 async function saveSettings() {
   const owner = document.getElementById('default-owner').value.trim();
   const notifEnabled = $('#notif-enabled').checked;
-  const notifTime = $('#notif-time').value;
+  const notifTime = $('#notif-time').value.trim();
   const notifIntervals = $('#notif-intervals').value.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+
+  // Validate time format (HH:mm, 24-hour)
+  if (notifEnabled && !/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(notifTime)) {
+    alert('Please enter a valid 24-hour time (HH:mm), e.g., 09:00 or 23:30');
+    return;
+  }
 
   const settings = {
     notifications: {
