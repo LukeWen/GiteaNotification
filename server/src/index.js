@@ -783,7 +783,6 @@ cron.schedule('* * * * *', async () => {
   const enabled = settings.notifications?.enabled;
   const targetTime = settings.notifications?.checkTime || 'N/A';
 
-  console.log(`[Cron Pulse] Current: ${currentTime} | Target: ${targetTime} | Enabled: ${enabled}`);
 
   if (enabled && currentTime === targetTime) {
     await runNotificationCheck();
